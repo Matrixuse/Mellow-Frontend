@@ -1,0 +1,10 @@
+{
+  "appId": "com.musious.app",
+  "appName": "Musious",
+  "webDir": "build",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  }
+}
