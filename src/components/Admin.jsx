@@ -46,8 +46,23 @@ const UploadSongForm = ({ onSongUploaded }) => {
     const [coverFile, setCoverFile] = useState(null);
     const [title, setTitle] = useState('');
     const [artist, setArtist] = useState('');
+    const [selectedMoods, setSelectedMoods] = useState([]);
     const [message, setMessage] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+
+    // Available mood options
+    const moodOptions = [
+        'Punjabi', 'Traditional', 'Chill', 'Hip Hop Mix', 
+        'Soft & HeartBreak', 'Smooth', 'Party', 'Romantic'
+    ];
+
+    const handleMoodToggle = (mood) => {
+        setSelectedMoods(prev => 
+            prev.includes(mood) 
+                ? prev.filter(m => m !== mood)
+                : [...prev, mood]
+        );
+    };
 
     const handleUpload = async (e) => {
         e.preventDefault();
@@ -61,15 +76,18 @@ const UploadSongForm = ({ onSongUploaded }) => {
         const formData = new FormData();
         formData.append('songFile', songFile);
         formData.append('coverFile', coverFile);
-        // Hum title aur artist ko bhi form data mein bhej rahe hain
         formData.append('title', title);
         formData.append('artist', artist);
+        formData.append('moods', JSON.stringify(selectedMoods));
 
         try {
             const user = JSON.parse(localStorage.getItem('user'));
             if (!user || !user.token) throw new Error('Authentication token not found.');
 
-            const response = await fetch('http://localhost:5000/api/songs/upload', {
+            const BASE_URL = (import.meta && import.meta.env && import.meta.env.VITE_API_URL)
+                ? import.meta.env.VITE_API_URL.replace(/\/$/, '')
+                : (typeof window !== 'undefined' && window.__API_URL) ? String(window.__API_URL).replace(/\/$/, '') : 'http://localhost:5000';
+            const response = await fetch(`${BASE_URL}/api/songs/upload`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${user.token}` },
                 body: formData,
@@ -79,11 +97,12 @@ const UploadSongForm = ({ onSongUploaded }) => {
             if (!response.ok) throw new Error(data.message || 'Upload failed');
             
             setMessage(`Success! "${data.title}" has been uploaded.`);
-            e.target.reset(); // Form clear karna
+            e.target.reset();
             setSongFile(null);
             setCoverFile(null);
             setTitle('');
             setArtist('');
+            setSelectedMoods([]);
             
             if (onSongUploaded) {
                 onSongUploaded(data);
@@ -106,6 +125,32 @@ const UploadSongForm = ({ onSongUploaded }) => {
             {/* Naye Text Inputs */}
             <div><label className="text-sm font-medium text-gray-300">Title</label><input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full px-3 py-2 mt-1 text-white bg-gray-700 border border-gray-600 rounded-md" placeholder="Enter song title" required /></div>
             <div><label className="text-sm font-medium text-gray-300">Artist</label><input type="text" value={artist} onChange={(e) => setArtist(e.target.value)} className="w-full px-3 py-2 mt-1 text-white bg-gray-700 border border-gray-600 rounded-md" placeholder="Enter artist names (comma-separated)" required /></div>
+            
+            {/* Mood Selection */}
+            <div>
+                <label className="text-sm font-medium text-gray-300">Mood Categories</label>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                    {moodOptions.map((mood) => (
+                        <button
+                            key={mood}
+                            type="button"
+                            onClick={() => handleMoodToggle(mood)}
+                            className={`px-3 py-2 text-sm rounded-md transition-colors ${
+                                selectedMoods.includes(mood)
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                            }`}
+                        >
+                            {mood}
+                        </button>
+                    ))}
+                </div>
+                {selectedMoods.length > 0 && (
+                    <p className="text-xs text-gray-400 mt-2">
+                        Selected: {selectedMoods.join(', ')}
+                    </p>
+                )}
+            </div>
 
             {message && <p className={`text-sm text-center ${message.startsWith('Error') ? 'text-red-400' : 'text-green-400'}`}>{message}</p>}
             <button type="submit" disabled={isLoading} className="w-full py-2 font-semibold text-white bg-green-600 rounded-md hover:bg-green-700 disabled:bg-gray-500 flex items-center justify-center gap-2">
@@ -119,7 +164,7 @@ const UploadSongForm = ({ onSongUploaded }) => {
 const AdminPanel = ({ onClose, onSongUploaded }) => {
     const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
     return (
-        <div className="relative w-full max-w-lg p-8 space-y-6 bg-gray-800 rounded-lg shadow-2xl border border-gray-700">
+        <div className="relative w-full max-w-lg p-6 space-y-4 bg-gray-800 rounded-lg shadow-2xl border border-gray-700">
             <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white"><X size={24} /></button>
             {!isAdminLoggedIn ? (
                 <AdminLoginForm onLogin={() => setIsAdminLoggedIn(true)} />

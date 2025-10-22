@@ -18,6 +18,25 @@
   <body>
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root"></div>
+    <!-- Startup shim: define a bare global `onAddToQueue` for legacy callers -->
+    <script>
+      (function () {
+        try {
+          if (typeof onAddToQueue === 'undefined') {
+            function __shim_onAddToQueue(song, position) {
+              try {
+                if (window.__APP_ON_ADD_TO_QUEUE && typeof window.__APP_ON_ADD_TO_QUEUE === 'function') {
+                  return window.__APP_ON_ADD_TO_QUEUE(song, position);
+                }
+              } catch (e) {}
+            }
+            window.__APP_ON_ADD_TO_QUEUE = window.__APP_ON_ADD_TO_QUEUE || __shim_onAddToQueue;
+            var onAddToQueue = __shim_onAddToQueue;
+            window.onAddToQueue = window.onAddToQueue || __shim_onAddToQueue;
+          }
+        } catch (e) {}
+      })();
+    </script>
     <!--
       This HTML file is a template.
       Your React app will be injected into the div with the id "root".

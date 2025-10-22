@@ -1,5 +1,8 @@
-// Live backend base URL
-const API_URL = 'https://musious-1.onrender.com/api/songs';
+// Local backend base URL for development (configurable via Vite or runtime)
+const BASE_URL = (import.meta && import.meta.env && import.meta.env.VITE_API_URL)
+    ? import.meta.env.VITE_API_URL.replace(/\/$/, '')
+    : (typeof window !== 'undefined' && window.__API_URL) ? String(window.__API_URL).replace(/\/$/, '') : 'http://localhost:5000';
+const API_URL = `${BASE_URL}/api/songs`;
 
 export const getSongs = async (token) => {
     // Browser ki memory se user ka data nikaalna

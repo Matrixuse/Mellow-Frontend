@@ -31,6 +31,7 @@ const Footer = ({ onDeveloperClick }) => (
                 <h3 className="font-bold text-white mb-4">Useful links</h3>
                 <button className="block text-left hover:text-white">Support</button>
                 <button ><a href="https://t.me/+3Iutz1P74CgwNDM9" className="block text-left hover:text-white">Free Mobile App</a></button>
+                <button className="block text-left hover:text-white"><a href="/feedback">Feedback</a></button>
             </div>
 
             {/* Column 4: Musious Plans */}

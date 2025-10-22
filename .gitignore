@@ -22,3 +22,22 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Build artifacts
+build/
+
+# Environment
+.env
+.env.*
+
+# Capacitor / Android outputs
+android/build/
+android/app/build/
+
+# Logs
+logs/
+*.log
+
+# IDE
+.idea/
+.vscode/

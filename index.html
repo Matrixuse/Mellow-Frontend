@@ -8,6 +8,40 @@
   </head>
   <body>
     <div id="root"></div>
+    <!-- Startup shim: define a bare global `onAddToQueue` early so legacy bundles
+         that call `onAddToQueue(...)` (without `window.`) won't throw a
+         ReferenceError. This intentionally uses a non-module script and
+         only defines the identifier if it's not already present. -->
+    <script>
+      (function () {
+        try {
+          if (typeof onAddToQueue === 'undefined') {
+            // forwarder that will call the modern window-scoped handler if set
+            function __shim_onAddToQueue(song, position) {
+              try {
+                if (window.__APP_ON_ADD_TO_QUEUE && typeof window.__APP_ON_ADD_TO_QUEUE === 'function') {
+                  return window.__APP_ON_ADD_TO_QUEUE(song, position);
+                }
+              } catch (e) {
+                // swallow any error to avoid breaking legacy callers
+              }
+            }
+            // expose both the bare identifier and window property (legacy callers)
+            window.__APP_ON_ADD_TO_QUEUE = window.__APP_ON_ADD_TO_QUEUE || __shim_onAddToQueue;
+            // declare bare global
+            var onAddToQueue = __shim_onAddToQueue;
+            // also attach to window in case some callers rely on it
+            window.onAddToQueue = window.onAddToQueue || __shim_onAddToQueue;
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <script>
+      var onAddToQueue = function() {
+        console.warn('Legacy global "onAddToQueue" was called. This needs to be refractored.');
+      };
+      window.onAddToQueue = onAddToQueue;
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

@@ -26,22 +26,22 @@ export const Header = ({ onLogout }) => (
 
 // Controls Component
 export const Controls = ({ isPlaying, onPlayPause, onNext, onPrev, isShuffle, onShuffleToggle, isRepeat, onRepeatToggle }) => (
-    <div className="flex items-center justify-center gap-4 sm:gap-6">
-        <button onClick={onShuffleToggle} className={`p-2 rounded-full hover:bg-gray-700 transition-colors ${isShuffle ? 'text-blue-400' : 'text-gray-400'}`} aria-label="Shuffle">
-            <Shuffle className="w-4 h-4 sm:w-5 sm:h-5" />
-        </button>
-        <button onClick={onPrev} className="p-2 rounded-full hover:bg-gray-700 transition-colors text-gray-300" aria-label="Previous Song">
-            <SkipBack className="w-6 h-6 sm:w-7 sm:h-7" />
-        </button>
-        <button onClick={onPlayPause} className="bg-blue-600 text-white rounded-full p-3 sm:p-4 hover:bg-blue-500 transition-all shadow-lg scale-105 hover:scale-110 flex items-center justify-center" aria-label={isPlaying ? 'Pause' : 'Play'}>
-            {isPlaying ? <Pause className="w-7 h-7 sm:w-8 h-8" /> : <Play className="w-7 h-7 sm:w-8 h-8" />}
-        </button>
-        <button onClick={onNext} className="p-2 rounded-full hover:bg-gray-700 transition-colors text-gray-300" aria-label="Next Song">
-            <SkipForward className="w-6 h-6 sm:w-7 sm:h-7" />
-        </button>
-        <button onClick={onRepeatToggle} className={`p-2 rounded-full hover:bg-gray-700 transition-colors ${isRepeat ? 'text-blue-400' : 'text-gray-400'}`} aria-label="Repeat">
-            <Repeat className="w-4 h-4 sm:w-5 sm:h-5" />
-        </button>
+    <div className="flex items-center justify-center gap-3 sm:gap-4 flex-nowrap">
+            <button onClick={onShuffleToggle} className={`p-2 rounded-full hover:bg-gray-700 transition-colors ${isShuffle ? 'text-blue-400' : 'text-gray-400'}`} aria-label="Shuffle">
+                <Shuffle className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
+            <button onClick={onPrev} className="p-2 rounded-full hover:bg-gray-700 transition-colors text-gray-300" aria-label="Previous Song">
+                <SkipBack className="w-4 h-5 sm:w-6 sm:h-6" />
+            </button>
+            <button onClick={onPlayPause} className="bg-blue-600 text-white rounded-full p-3 sm:p-4 hover:bg-blue-500 transition-all shadow-lg flex items-center justify-center" aria-label={isPlaying ? 'Pause' : 'Play'}>
+                {isPlaying ? <Pause className="w-6 h-6 sm:w-7 sm:h-7" /> : <Play className="w-6 h-6 sm:w-7 sm:h-7" />}
+            </button>
+            <button onClick={onNext} className="p-2 rounded-full hover:bg-gray-700 transition-colors text-gray-300" aria-label="Next Song">
+                <SkipForward className="w-4 h-5 sm:w-6 sm:h-6" />
+            </button>
+            <button onClick={onRepeatToggle} className={`p-2 rounded-full hover:bg-gray-700 transition-colors ${isRepeat ? 'text-blue-400' : 'text-gray-400'}`} aria-label="Repeat">
+                <Repeat className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
     </div>
 );
 
@@ -104,6 +104,7 @@ export const Footer = ({ onDeveloperClick }) => (
             <div className="space-y-3">
                 <h3 className="font-bold text-white mb-4">Useful links</h3>
                 <button className="block text-left hover:text-white">Support</button>
+                <button className="block text-left hover:text-white"><a href="/feedback">Feedback</a></button>
                 <button className="block text-left hover:text-white">Free Mobile App</button>
             </div>
             <div className="space-y-3 col-span-2 md:col-span-1">
@@ -129,7 +130,7 @@ export const Footer = ({ onDeveloperClick }) => (
             </div>
             <div className="flex flex-col items-center mt-6 md:mt-4">
                 <span>© 2025 Mellow</span>
-                <span>Creators: Naman, Shreyas</span>
+                <span>Created by Naman</span>
             </div>
             <div></div>
         </div>

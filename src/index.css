@@ -8,6 +8,15 @@ html, body, #root {
   overflow: hidden;
 }
 
+/* Ensure a sensible root font size for desktop (rem-based sizing relies on this). */
+html {
+  font-size: 18px; /* increase desktop baseline for a 'zoomed in' feel */
+}
+/* Slightly increase base on very large screens for readability */
+@media (min-width: 1600px) {
+  html { font-size: 19px; }
+}
+
 /* Vertical Scrollbar ke liye */
 .custom-scrollbar::-webkit-scrollbar {
   width: 8px;
