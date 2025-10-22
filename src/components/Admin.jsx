@@ -86,7 +86,7 @@ const UploadSongForm = ({ onSongUploaded }) => {
 
             const BASE_URL = (import.meta && import.meta.env && import.meta.env.VITE_API_URL)
                 ? import.meta.env.VITE_API_URL.replace(/\/$/, '')
-                : (typeof window !== 'undefined' && window.__API_URL) ? String(window.__API_URL).replace(/\/$/, '') : 'http://localhost:5000';
+                : (typeof window !== 'undefined' && window.__API_URL) ? String(window.__API_URL).replace(/\/$/, '') : 'https://mellow-1.onrender.com';
             const response = await fetch(`${BASE_URL}/api/songs/upload`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${user.token}` },
