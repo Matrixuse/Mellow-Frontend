@@ -164,8 +164,11 @@ const UploadSongForm = ({ onSongUploaded }) => {
 const AdminPanel = ({ onClose, onSongUploaded }) => {
     const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(false);
     return (
-        <div className="relative w-full max-w-lg p-6 space-y-4 bg-gray-800 rounded-lg shadow-2xl border border-gray-700">
-            <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white"><X size={24} /></button>
+        <div
+            className="relative w-full max-w-lg mx-4 md:mx-0 p-6 space-y-4 bg-gray-800 rounded-lg shadow-2xl border border-gray-700 max-h-[75vh] md:max-h-[80vh] overflow-y-auto"
+        >
+            {/* Close (X) is visible on the top-right; keeps the panel dismissible on small screens */}
+            <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-white z-10"><X size={24} /></button>
             {!isAdminLoggedIn ? (
                 <AdminLoginForm onLogin={() => setIsAdminLoggedIn(true)} />
             ) : (

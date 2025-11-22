@@ -25,7 +25,7 @@ export const Header = ({ onLogout }) => (
 
 
 // Controls Component
-export const Controls = ({ isPlaying, onPlayPause, onNext, onPrev, isShuffle, onShuffleToggle, isRepeat, onRepeatToggle }) => (
+const ControlsInner = ({ isPlaying, onPlayPause, onNext, onPrev, isShuffle, onShuffleToggle, isRepeat, onRepeatToggle }) => (
     <div className="flex items-center justify-center gap-3 sm:gap-4 flex-nowrap">
             <button onClick={onShuffleToggle} className={`p-2 rounded-full hover:bg-gray-700 transition-colors ${isShuffle ? 'text-blue-400' : 'text-gray-400'}`} aria-label="Shuffle">
                 <Shuffle className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -44,6 +44,10 @@ export const Controls = ({ isPlaying, onPlayPause, onNext, onPrev, isShuffle, on
             </button>
     </div>
 );
+
+// Memoize controls so parent re-renders (e.g. progress changes) won't cause the buttons to re-render
+export const Controls = React.memo(ControlsInner);
+Controls.displayName = 'Controls';
 
 // ProgressBar Component (YEH UPDATED VERSION HAI)
 export const ProgressBar = ({ progress, onProgressChange, duration, currentTime }) => (
@@ -65,7 +69,7 @@ export const ProgressBar = ({ progress, onProgressChange, duration, currentTime 
 );
 
 // VolumeControl Component (YEH UPDATED VERSION HAI)
-export const VolumeControl = ({ volume, onVolumeChange }) => (
+const VolumeControlInner = ({ volume, onVolumeChange }) => (
     <div className="flex items-center gap-2">
         <button onClick={() => onVolumeChange(volume > 0 ? 0 : 0.5)} className="text-gray-400 hover:text-white">
             {volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
@@ -82,6 +86,10 @@ export const VolumeControl = ({ volume, onVolumeChange }) => (
         />
     </div>
 );
+
+// Memoize volume so UI re-renders (progress updates) don't re-create the volume control UI unless props change
+export const VolumeControl = React.memo(VolumeControlInner);
+VolumeControl.displayName = 'VolumeControl';
 
 // Footer Component
 export const Footer = ({ onDeveloperClick }) => (

@@ -175,8 +175,8 @@ const PlaylistView = ({ playlistId, user, onPlaySong, onPlayPlaylist, onAddToQue
         <div className="flex-grow p-4 flex flex-col min-h-0 min-w-0">
             {/* Header */}
                 <div className="flex items-center gap-4 mb-6 flex-shrink-0">
-                {/* back button: desktop only */}
-                <button onClick={onClose} className="hidden md:inline-flex p-2 rounded-full bg-gray-800 hover:bg-gray-700">
+                {/* back button: always visible */}
+                <button onClick={onClose} className="inline-flex p-2 rounded-full bg-gray-800 hover:bg-gray-700 mr-2">
                     <ArrowLeft size={24} />
                 </button>
                 <div className="flex-1">

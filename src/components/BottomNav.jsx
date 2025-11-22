@@ -30,18 +30,22 @@ export default function BottomNav() {
     return (
       <div className="fixed bottom-0 left-0 right-0 z-30 md:hidden">
         <div className="bg-gray-900 border-t border-gray-800 px-2 h-14 flex items-center justify-between">
-          <button onClick={goHome} aria-label="Home" className={`flex flex-col items-center ${isActive('/') ? 'text-white' : 'text-gray-300 hover:text-white'}`}>
-            <Home className={`w-5 h-5 ${isActive('/') ? 'scale-110' : ''}`} />
-            <span className={`text-[10px] mt-0.5 ${isActive('/') ? 'text-white font-semibold' : ''}`}>Home</span>
-          </button>
-          <button onClick={openSearch} aria-label="Search" className={`flex flex-col items-center ${isActive('/search') ? 'text-white' : 'text-gray-300 hover:text-white'}`}>
-            <Search className={`w-5 h-5 ${isActive('/search') ? 'scale-110' : ''}`} />
-            <span className={`text-[10px] mt-0.5 ${isActive('/search') ? 'text-white font-semibold' : ''}`}>Search</span>
-          </button>
-          <button onClick={openPlaylists} aria-label="Playlists" className={`flex flex-col items-center ${isActive('/playlists') ? 'text-white' : 'text-gray-300 hover:text-white'}`}>
-            <List className={`w-5 h-5 ${isActive('/playlists') ? 'scale-110' : ''}`} />
-            <span className={`text-[10px] mt-0.5 ${isActive('/playlists') ? 'text-white font-semibold' : ''}`}>Playlists</span>
-          </button>
+          <div className="flex-1 flex justify-center">
+            <div className="flex w-full max-w-xs justify-between">
+              <button onClick={goHome} aria-label="Home" className={`flex flex-col items-center ml-2 ${isActive('/') ? 'text-white' : 'text-gray-300 hover:text-white'}`}>
+                <Home className={`w-5 h-5 ${isActive('/') ? 'scale-110' : ''}`} />
+                <span className={`text-[10px] mt-0.5 ${isActive('/') ? 'text-white font-semibold' : ''}`}>Home</span>
+              </button>
+              <button onClick={openSearch} aria-label="Search" className={`flex flex-col items-center ${isActive('/search') ? 'text-white' : 'text-gray-300 hover:text-white'}`}>
+                <Search className={`w-5 h-5 ${isActive('/search') ? 'scale-110' : ''}`} />
+                <span className={`text-[10px] mt-0.5 ${isActive('/search') ? 'text-white font-semibold' : ''}`}>Search</span>
+              </button>
+              <button onClick={openPlaylists} aria-label="Playlists" className={`flex flex-col items-center mr-2 ${isActive('/playlists') ? 'text-white' : 'text-gray-300 hover:text-white'}`}>
+                <List className={`w-5 h-5 ${isActive('/playlists') ? 'scale-110' : ''}`} />
+                <span className={`text-[10px] mt-0.5 ${isActive('/playlists') ? 'text-white font-semibold' : ''}`}>Playlists</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );

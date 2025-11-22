@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Routes, Route, Link, Outlet, useOutletContext } from 'react-router-dom';
 import AuthForm from './components/AuthForm';
 import queueService from './services/queueService';
+import nativeMediaService from './services/nativeMediaService';
 import PlayerUI from './components/PlayerUI';
 import SongLibrary from './components/SongLibrary';
 import AdminPanel from './components/Admin';
@@ -17,6 +18,7 @@ import PlaylistsPage from './components/PlaylistsPage';
 import FeedbackPage from './components/FeedbackPage';
 import BottomNav from './components/BottomNav';
 import MoodPage from './components/MoodPage';
+import { createFuzzySearch, getFuzzySuggestions } from './utils/fuzzySearch';
 
 // No global fallbacks for handlers. Handlers should be passed explicitly via props or outlet context.
 
@@ -95,7 +97,7 @@ const LibraryPage = () => {
                         <div className="relative flex-1">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                             {/* Give an id so BottomNav can focus this input when Search button pressed */}
-                            <input id="global-search-input" type="text" placeholder="Search for songs or artists..." value={searchTerm} onChange={onSearchChange} className="w-full bg-gray-700/60 text-white rounded-full py-1.5 pl-9 pr-9 text-sm" />
+                            <input id="global-search-input" type="text" placeholder="Search for songs or artists..." value={searchTerm} onChange={onSearchChange} autoComplete="off" className="w-full bg-gray-700/60 text-white rounded-full py-1.5 pl-9 pr-9 text-sm" />
                             {searchTerm && (<button onClick={onClearSearch} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"><X size={20} /></button>)}
                         </div>
                         {/* Desktop: move user profile icon and 'Hi,' to the right of search */}
@@ -154,6 +156,10 @@ function App() {
 
     const audioRef = useRef(null);
     const currentSong = songs[currentSongIndex];
+
+    // New state for fuzzy search
+    const [suggestions, setSuggestions] = useState([]);
+    const [fuzzy, setFuzzy] = useState(null);
 
     // Effects
     useEffect(() => { const u = localStorage.getItem('user'); if (u) { try { setUser(JSON.parse(u)); } catch (e) { localStorage.removeItem('user'); } } setIsInitializing(false); }, []);
@@ -224,15 +230,32 @@ function App() {
         }, 10 * 60 * 1000);
         return () => clearInterval(intervalId);
     }, [user]);
-    useEffect(() => { const a = audioRef.current; if (a && currentSong) { if (a.src !== currentSong.songUrl) { a.src = currentSong.songUrl; a.load(); } } }, [currentSong]);
-    useEffect(() => { const a = audioRef.current; if (a) { if (isPlaying) { a.play().catch(console.error); } else { a.pause(); } } }, [isPlaying, currentSong]);
+    useEffect(() => { const a = audioRef.current; if (a && currentSong) { if (a.src !== currentSong.songUrl) { a.src = currentSong.songUrl; a.load(); } 
+        // Start or update native media service when song changes
+        (async () => {
+            try {
+                await nativeMediaService.start(currentSong, isPlaying);
+            } catch(e) { console.warn('nativeMediaService.start error', e); }
+        })();
+    } }, [currentSong]);
+    useEffect(() => { const a = audioRef.current; if (a) { if (isPlaying) { a.play().catch(console.error); } else { a.pause(); } 
+        // Update native notification play state
+        (async () => {
+            try {
+                await nativeMediaService.updateIsPlaying(isPlaying);
+                if (!isPlaying) {
+                    // leave notification but mark paused; don't stop service
+                }
+            } catch(e) { console.warn('nativeMediaService.updateIsPlaying error', e); }
+        })();
+    } }, [isPlaying, currentSong]);
 
     // Handlers
-    const handleLogin = (d) => { setUser(d); localStorage.setItem('user', JSON.stringify(d)); };
-    const handleLogout = () => { setIsPlaying(false); if (audioRef.current) audioRef.current.src = ""; setUser(null); setSongs([]); setCurrentSongIndex(0); localStorage.removeItem('user'); };
-    const handlePlayPause = () => { if (!currentSong) return; setIsPlaying(!isPlaying); };
-    const handleTogglePlayerExpand = () => setIsPlayerExpanded(p => !p);
-    const handleNext = () => {
+    const handleLogin = useCallback((d) => { setUser(d); localStorage.setItem('user', JSON.stringify(d)); }, []);
+    const handleLogout = useCallback(() => { setIsPlaying(false); if (audioRef.current) audioRef.current.src = ""; setUser(null); setSongs([]); setCurrentSongIndex(0); localStorage.removeItem('user'); }, []);
+    const handlePlayPause = useCallback(() => { if (!currentSong) return; setIsPlaying(p => !p); }, [currentSong]);
+    const handleTogglePlayerExpand = useCallback(() => setIsPlayerExpanded(p => !p), []);
+    const handleNext = useCallback(() => {
         try {
             const q = queueService.getQueue();
             if (q.length > 0) {
@@ -259,9 +282,9 @@ function App() {
         } catch (err) {
             console.error('handleNext error', err);
         }
-    };
+    }, [songs, currentSongIndex, isShuffle]);
 
-    const handlePrev = () => {
+    const handlePrev = useCallback(() => {
         try {
             const q = queueService.getQueue();
             if (q.length > 0) {
@@ -285,9 +308,9 @@ function App() {
         } catch (err) {
             console.error('handlePrev error', err);
         }
-    };
-    const handleVolumeChange = (v) => { setVolume(v); if (audioRef.current) audioRef.current.volume = v; };
-    const handleProgressChange = (p) => { if (audioRef.current && isFinite(audioRef.current.duration)) audioRef.current.currentTime = (p / 100) * audioRef.current.duration; };
+    }, [songs, currentSongIndex]);
+    const handleVolumeChange = useCallback((v) => { setVolume(v); if (audioRef.current) audioRef.current.volume = v; }, []);
+    const handleProgressChange = useCallback((p) => { if (audioRef.current && isFinite(audioRef.current.duration)) audioRef.current.currentTime = (p / 100) * audioRef.current.duration; }, []);
     const handleTimeUpdate = () => { if (audioRef.current) { setDuration(audioRef.current.duration || 0); setCurrentTime(audioRef.current.currentTime || 0); setProgress((audioRef.current.currentTime / audioRef.current.duration) * 100 || 0); } };
     const handleSongEnd = () => {
         if (isRepeat) {
@@ -306,7 +329,7 @@ function App() {
         handleNext();
     };
     const handleSongUploaded = (s) => setSongs(p => [...p, s]);
-    const handleSelectSong = (id) => {
+    const handleSelectSong = useCallback((id) => {
         const i = songs.findIndex(s => s.id === id);
         if (i !== -1) {
             if (currentSongIndex === i) setIsPlaying(p => !p);
@@ -324,7 +347,7 @@ function App() {
                 }
             } catch (e) {}
         }
-    };
+    }, [songs, currentSongIndex]);
     // Queue handler used by SongLibrary to add a song to the queue
     const handleAddToQueue = useCallback((songOrSongs, position = 'end') => {
         try {
@@ -340,6 +363,41 @@ function App() {
     // forward to the current implementation without causing TDZ issues.
     const addToQueueRef = useRef(null);
     useEffect(() => { addToQueueRef.current = handleAddToQueue; }, [handleAddToQueue]);
+
+    // Stable UI toggles used by controls/headers etc.
+    const handleShuffleToggle = useCallback(() => setIsShuffle(s => !s), []);
+    const handleRepeatToggle = useCallback(() => setIsRepeat(r => !r), []);
+    const toggleLogoutVisible = useCallback(() => setIsLogoutVisible(v => !v), []);
+    
+    // New search handlers
+    const handleSearchChange = useCallback((e) => {
+        const val = e.target.value;
+        setSearchTerm(val);
+        if (fuzzy && val) {
+            setSuggestions(getFuzzySuggestions(fuzzy, val, 5));
+        } else {
+            setSuggestions([]);
+        }
+    }, [fuzzy]);
+    const handleClearSearch = useCallback(() => {
+        setSearchTerm('');
+        setSuggestions([]);
+    }, []);
+
+    // Handle browser/mobile gesture back navigation
+    useEffect(() => {
+        const onPopState = () => {
+            // Close modals if open, or sync UI state as needed
+            setIsQueueOpen(false);
+            setIsPlaylistOpen(false);
+            setIsPlayerExpanded(false);
+            setIsAdminPanelOpen(false);
+            // Optionally clear search or suggestions if desired
+            // setSearchTerm(''); setSuggestions([]);
+        };
+        window.addEventListener('popstate', onPopState);
+        return () => window.removeEventListener('popstate', onPopState);
+    }, []);
 
     // Register a stable global shim once. The shim forwards calls to the
     // latest handler stored in addToQueueRef. This avoids referencing the
@@ -410,16 +468,17 @@ function App() {
         console.log('Playlist updated');
     };
     
-    const filteredSongs = songs.filter((s) => {
-        const term = (searchTerm || '').toLowerCase();
-        const title = (s?.title || '').toLowerCase();
-        const artistField = s?.artist;
-        const artistString = Array.isArray(artistField)
-            ? artistField.join(', ')
-            : (artistField || '');
-        const artists = artistString.toLowerCase();
-        return title.includes(term) || artists.includes(term);
-    });
+    // Build fuzzy search index when songs change
+    useEffect(() => {
+        if (songs && songs.length > 0) {
+            setFuzzy(createFuzzySearch(songs, ['title', 'artist']));
+        }
+    }, [songs]);
+
+    // Use fuzzy search for filtering
+    const filteredSongs = (fuzzy && searchTerm)
+        ? getFuzzySuggestions(fuzzy, searchTerm, 100)
+        : songs;
     
     if (isInitializing) return <div className="h-screen bg-gray-900 flex items-center justify-center"><Loader /></div>;
     
@@ -432,7 +491,7 @@ function App() {
                     <Route path="/" element={
                         <MainLayout 
                             user={user}
-                            onLogoutClick={() => setIsLogoutVisible(!isLogoutVisible)} 
+                            onLogoutClick={toggleLogoutVisible}
                             isLogoutVisible={isLogoutVisible} 
                             onLogout={handleLogout}
                             currentSong={currentSong} 
@@ -447,9 +506,9 @@ function App() {
                             volume={volume} 
                             onVolumeChange={handleVolumeChange} 
                             isShuffle={isShuffle} 
-                            onShuffleToggle={() => setIsShuffle(!isShuffle)} 
+                            onShuffleToggle={handleShuffleToggle}
                             isRepeat={isRepeat} 
-                            onRepeatToggle={() => setIsRepeat(!isRepeat)} 
+                            onRepeatToggle={handleRepeatToggle}
                             allSongs={songs}
                             filteredSongs={filteredSongs}
                             onSelectSong={handleSelectSong}
@@ -457,8 +516,8 @@ function App() {
                             isLoadingSongs={isLoadingSongs}
                             error={error}
                             searchTerm={searchTerm}
-                            onSearchChange={(e) => setSearchTerm(e.target.value)}
-                            onClearSearch={() => setSearchTerm('')}
+                            onSearchChange={handleSearchChange}
+                            onClearSearch={handleClearSearch}
                             onAdminClick={() => setIsAdminPanelOpen(true)}
                             onAddToQueue={handleAddToQueue}
                             onAddToPlaylist={(songId) => handleOpenAddToPlaylist(songId)}

@@ -1,11 +1,40 @@
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { useParams, useOutletContext, useNavigate } from 'react-router-dom';
 import PlaylistView from './PlaylistView';
+import queueService from '../services/queueService';
 
 const PlaylistPage = () => {
     const { id } = useParams();
-    const outlet = useOutletContext() || {};
+    const outlet = useOutletContext();
+    const stableOutlet = useMemo(() => outlet || {}, [outlet]);
     const navigate = useNavigate();
+    
+    // Play a song from a playlist, setting the queue to that playlist's songs
+    const handlePlaySongFromPlaylist = useCallback((songId, playlist) => {
+        if (!playlist || !playlist.songs || !Array.isArray(playlist.songs)) return;
+        queueService.clearQueue();
+        queueService.addToQueue(playlist.songs, 'end');
+        // Find index of songId in playlist
+        const idx = playlist.songs.findIndex(s => String(s.id) === String(songId));
+        if (idx >= 0) {
+            if (stableOutlet.onSelectSong) stableOutlet.onSelectSong(playlist.songs[idx].id);
+        }
+    }, [stableOutlet]);
+
+    // Play entire playlist from the first song
+    const handlePlayPlaylist = useCallback((playlist) => {
+        if (!playlist || !playlist.songs || !Array.isArray(playlist.songs) || playlist.songs.length === 0) return;
+        queueService.clearQueue();
+        queueService.addToQueue(playlist.songs, 'end');
+        if (stableOutlet.onSelectSong) stableOutlet.onSelectSong(playlist.songs[0].id);
+    }, [stableOutlet]);
+
+    // Handler for adding a song to the queue from a playlist context
+    const handleAddToQueueFromPlaylist = useCallback((song, playlist) => {
+        if (playlist && playlist.songs && Array.isArray(playlist.songs)) {
+            queueService.addToQueue([song], 'end');
+        }
+    }, []);
 
     // Prefer outlet user (provided by App via Outlet context). If not available (some navigation flows),
     // fall back to reading from localStorage so the page still works after refresh/navigation.
@@ -37,28 +66,16 @@ const PlaylistPage = () => {
         );
     }
 
-    const handlers = {
-        onPlaySong: outlet.onSelectSong,
-        onPlayPlaylist: (playlist) => {
-            // fallback: play first song
-            if (outlet.onSelectSong && Array.isArray(playlist.songs) && playlist.songs.length > 0) {
-                outlet.onSelectSong(playlist.songs[0].id);
-            }
-        },
-        currentSongId: outlet.currentSongId,
-        isPlaying: outlet.isPlaying,
-        onClose: () => navigate('/playlists')
-    };
-
     return (
         <PlaylistView
             playlistId={id}
             user={user}
-            onPlaySong={handlers.onPlaySong}
-            onPlayPlaylist={handlers.onPlayPlaylist}
-            currentSongId={handlers.currentSongId}
-            isPlaying={handlers.isPlaying}
-            onClose={handlers.onClose}
+            onPlaySong={(songId, playlist) => handlePlaySongFromPlaylist(songId, playlist)}
+            onPlayPlaylist={handlePlayPlaylist}
+            onAddToQueue={handleAddToQueueFromPlaylist}
+            currentSongId={outlet.currentSongId}
+            isPlaying={outlet.isPlaying}
+            onClose={() => navigate('/playlists')}
         />
     );
 };

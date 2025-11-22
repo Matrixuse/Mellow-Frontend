@@ -1,6 +1,6 @@
 {
-  "appId": "com.musious.app",
-  "appName": "Musious",
+  "appId": "com.Mellow.app",
+  "appName": "Mellow",
   "webDir": "build",
   "bundledWebRuntime": false,
   "server": {

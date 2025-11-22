@@ -137,10 +137,12 @@ const PlaylistsPage = () => {
                                         <span>Create Playlist</span>
                                     </button>
                                 ) : (
-                                    <div className="flex items-center gap-2 mt-3">
+                                    <div className="flex flex-col gap-2 mt-3 w-full max-w-xs">
                                         <input value={newName} onChange={(e) => setNewName(e.target.value)} className="px-3 py-2 bg-gray-800 border border-gray-700 rounded-full text-white" placeholder="Playlist name" />
-                                        <button onClick={handleCreate} disabled={creating} className="px-3 py-2 bg-green-600 rounded-full text-white">{creating ? 'Creating...' : 'Create'}</button>
-                                        <button onClick={() => setShowCreate(false)} className="px-3 py-2 text-gray-400">Cancel</button>
+                                        <div className="flex gap-2">
+                                            <button onClick={handleCreate} disabled={creating} className="flex-1 px-3 py-2 bg-green-600 rounded-full text-white">{creating ? 'Creating...' : 'Create'}</button>
+                                            <button onClick={() => setShowCreate(false)} className="px-3 py-2 text-gray-400">Cancel</button>
+                                        </div>
                                     </div>
                                 )}
                             </div>

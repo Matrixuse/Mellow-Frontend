@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { Capacitor } from '@capacitor/core';
 import { Controls, ProgressBar, VolumeControl } from './OtherComponents';
 import { Music, MoreVertical } from 'lucide-react';
+import nativeMediaService from '../services/nativeMediaService';
 
 const PlayerUI = ({ 
     currentSong, isPlaying, onPlayPause, onNext, onPrev, 
@@ -22,6 +24,202 @@ const PlayerUI = ({
         document.addEventListener('click', handleClickOutside);
         return () => document.removeEventListener('click', handleClickOutside);
     }, []);
+
+    // MusicControls integration (cordova-plugin-music-controls2)
+    useEffect(() => {
+        // only run on native platforms where the plugin exists
+        if (!Capacitor.isNativePlatform()) return;
+    console.log('PlayerUI: Capacitor native platform detected');
+    console.log('PlayerUI: MusicControls available?', typeof window !== 'undefined' && !!window.MusicControls);
+    const hasCapacitorNativeMedia = !!(Capacitor.Plugins && Capacitor.Plugins.NativeMedia);
+        if (typeof window === 'undefined' || !window.MusicControls) {
+            // still try to start the native foreground service if available
+        }
+
+        // create or update controls when currentSong changes
+        try {
+            if (currentSong) {
+                // If the Capacitor NativeMedia plugin is available, prefer it as the single
+                // source of truth for the foreground service / notification. Falling back to
+                // the Cordova MusicControls plugin only when NativeMedia is not present avoids
+                // having two different notification producers fighting each other (fluttering).
+                const hasCapacitorNativeMedia = !!(Capacitor.Plugins && Capacitor.Plugins.NativeMedia);
+
+                if (!hasCapacitorNativeMedia && typeof window !== 'undefined' && window.MusicControls) {
+                    // Cordova path: create & subscribe only when NativeMedia isn't present
+                    window.MusicControls.create({
+                        track: currentSong.title || 'Unknown',
+                        artist: currentSong.artist || '',
+                        cover: currentSong.coverUrl || '',
+                        isPlaying: !!isPlaying,
+                        dismissable: false,
+                        hasPrev: true,
+                        hasNext: true,
+                        hasClose: true
+                    });
+
+                    window.MusicControls.subscribe((action) => {
+                        // plugin may send a JSON string or object
+                        let message = action;
+                        try {
+                            if (typeof action === 'string') {
+                                const parsed = JSON.parse(action);
+                                message = parsed && parsed.message ? parsed.message : action;
+                            } else if (action && action.message) {
+                                message = action.message;
+                            }
+                        } catch (e) {
+                            // keep original
+                        }
+
+                        // debug log
+                        console.log('MusicControls action ->', message);
+                        // route actions to props
+                        if (typeof message === 'string') {
+                            if (message.includes('play')) {
+                                onPlayPause && onPlayPause(true);
+                            } else if (message.includes('pause')) {
+                                onPlayPause && onPlayPause(false);
+                            } else if (message.includes('next')) {
+                                onNext && onNext();
+                            } else if (message.includes('previous')) {
+                                onPrev && onPrev();
+                            } else if (message.includes('destroy')) {
+                                window.MusicControls.destroy();
+                            }
+                        }
+                    });
+
+                    window.MusicControls.listen();
+                }
+
+                // Before starting/updating native service, ensure notification permission is granted
+                (async () => {
+                    const checkAndRequestNotificationPermission = async () => {
+                        // If not running on native, fall back to the web Notification API
+                        if (!Capacitor.isNativePlatform()) {
+                            try {
+                                const result = await Notification.requestPermission();
+                                return result === 'granted';
+                            } catch (e) {
+                                return false;
+                            }
+                        }
+
+                        // Try dynamic import of Capacitor PushNotifications (safe if not installed)
+                        try {
+                            const mod = await import('@capacitor/push-notifications');
+                            const PushNotifications = mod.PushNotifications || mod.default;
+                            if (!PushNotifications) return false;
+
+                            let status = await PushNotifications.checkPermissions();
+                            // plugin may return { receive } or { value } or { granted }
+                            let granted = (status && (status.receive === 'granted' || status.value === 'granted' || status.granted === true));
+                            if (!granted) {
+                                status = await PushNotifications.requestPermissions();
+                                granted = (status && (status.receive === 'granted' || status.value === 'granted' || status.granted === true));
+                            }
+                            return !!granted;
+                        } catch (e) {
+                            console.warn('PushNotifications plugin not available or failed:', e);
+                            // fallback to web prompt
+                            try {
+                                const result = await Notification.requestPermission();
+                                return result === 'granted';
+                            } catch (err) {
+                                return false;
+                            }
+                        }
+                    };
+
+                    const hasPermission = await checkAndRequestNotificationPermission();
+                    if (!hasPermission) {
+                        console.warn('Notification permission not granted; native foreground notification may not display on Android 13+');
+                        return;
+                    }
+
+                    try {
+                        // Avoid starting the foreground service from UI components to
+                        // prevent duplicate start requests. App-level controller (App.jsx)
+                        // is responsible for starting the service when the song changes.
+                        // Here we just update metadata so the notification stays in sync.
+                        console.log('PlayerUI: updating native metadata via nativeMediaService', { title: currentSong.title, artist: currentSong.artist, cover: currentSong.coverUrl });
+                        await nativeMediaService.updateMetadata(currentSong);
+                    } catch (e) {
+                        console.warn('PlayerUI: NativeMedia.updateMetadata failed', e);
+                    }
+                })();
+            } else {
+                // no song: destroy controls
+                if (window.MusicControls && window.MusicControls.destroy) {
+                    window.MusicControls.destroy();
+                }
+                try {
+                    if (Capacitor.Plugins && Capacitor.Plugins.NativeMedia && Capacitor.Plugins.NativeMedia.stopService) {
+                        console.log('PlayerUI: stopping NativeMedia service');
+                        Capacitor.Plugins.NativeMedia.stopService();
+                    }
+                } catch (e) {
+                    // ignore
+                }
+            }
+
+            // update playing state when isPlaying toggles
+            try {
+                if (hasCapacitorNativeMedia) {
+                    // centralize play state updates through the nativeMediaService when available
+                    nativeMediaService.updateIsPlaying(!!isPlaying);
+                } else if (window.MusicControls && window.MusicControls.updateIsPlaying) {
+                    window.MusicControls.updateIsPlaying(!!isPlaying);
+                }
+            } catch (e) {
+                console.warn('PlayerUI: error updating play state for native controls', e);
+            }
+        } catch (err) {
+            // don't block the UI if plugin fails
+            // console.warn('MusicControls init error', err);
+        }
+
+        return () => {
+            try {
+                if (window.MusicControls && window.MusicControls.destroy) {
+                    window.MusicControls.destroy();
+                }
+            } catch (e) {}
+        };
+    // We intentionally only depend on `currentSong` here so metadata updates are
+    // triggered only when the song (metadata) changes. Avoid updating metadata
+    // on transient progress or callback identity changes which cause UI flicker.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [currentSong]);
+
+    // Listen for native plugin mediaAction events (play/pause/next/prev) and route to app controls
+    useEffect(() => {
+        let removeListener = null;
+        try {
+            if (Capacitor.isNativePlatform() && Capacitor.Plugins && Capacitor.Plugins.NativeMedia && Capacitor.Plugins.NativeMedia.addListener) {
+                (async () => {
+                    try {
+                        const l = await Capacitor.Plugins.NativeMedia.addListener('mediaAction', (info) => {
+                            const action = info && info.action ? info.action : info;
+                            if (action === 'play') onPlayPause && onPlayPause(true);
+                            else if (action === 'pause') onPlayPause && onPlayPause(false);
+                            else if (action === 'next') onNext && onNext();
+                            else if (action === 'prev' || action === 'previous') onPrev && onPrev();
+                        });
+                        removeListener = l && l.remove ? l.remove : null;
+                    } catch (e) {
+                        console.warn('PlayerUI: failed to add NativeMedia.mediaAction listener', e);
+                    }
+                })();
+            }
+        } catch (e) {
+            // ignore
+        }
+        return () => {
+            try { if (removeListener) removeListener(); } catch(e){}
+        };
+    }, [onPlayPause, onNext, onPrev]);
 
     // compute dropdown position when menuOpen toggles on
     useEffect(() => {
@@ -115,3 +313,5 @@ const PlayerUI = ({
 };
 
 export default PlayerUI;
+
+// NOTE: debug button removed to prevent accidental repeated native start calls from the WebView.
