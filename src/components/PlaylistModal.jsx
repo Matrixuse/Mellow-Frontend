@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { X, Plus } from 'lucide-react';
-import { getPlaylists, createPlaylist, addSongToPlaylist, deletePlaylist } from '../api/playlistService';
+import { getPlaylists, createPlaylist, addSongToPlaylist } from '../api/playlistService';
 import { useOutletContext } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
 

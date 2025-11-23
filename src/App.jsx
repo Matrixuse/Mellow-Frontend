@@ -161,31 +161,32 @@ function App() {
     const navigate = useNavigate();
 
     // New state for fuzzy search
-    const [suggestions, setSuggestions] = useState([]);
     const [fuzzy, setFuzzy] = useState(null);
 
     // Effects
     useEffect(() => { const u = localStorage.getItem('user'); if (u) { try { setUser(JSON.parse(u)); } catch (e) { localStorage.removeItem('user'); } } setIsInitializing(false); }, []);
     // Ensure a global bare `onAddToQueue` exists in the page global scope for
     // legacy bundles that call `onAddToQueue(...)` (without `window.`). This
-    // creates a real global var by evaluating a small script in the global
-    // scope so those calls don't throw ReferenceError. It forwards to the
-    // safer `window.__APP_ON_ADD_TO_QUEUE` forwarder when available.
+    // forwards to `window.__APP_ON_ADD_TO_QUEUE` when present.
     useEffect(() => {
         try {
             if (typeof window !== 'undefined') {
-                // If a true global var isn't present, inject one into the global scope
-                // using eval so it's declared with `var` at top-level.
                 if (!window.onAddToQueue) {
-                    const shim = "var onAddToQueue = function(){ try { if(window.__APP_ON_ADD_TO_QUEUE && typeof window.__APP_ON_ADD_TO_QUEUE === 'function') { return window.__APP_ON_ADD_TO_QUEUE.apply(null, arguments); } } catch(e){} console.warn('Global onAddToQueue called but no app handler is registered.'); return null; }; window.onAddToQueue = window.onAddToQueue || onAddToQueue;";
-                    // Use global eval to declare a true global var
-                    (0, eval)(shim);
+                    window.onAddToQueue = function() {
+                        try {
+                            if (window.__APP_ON_ADD_TO_QUEUE && typeof window.__APP_ON_ADD_TO_QUEUE === 'function') {
+                                return window.__APP_ON_ADD_TO_QUEUE.apply(null, arguments);
+                            }
+                        } catch (e) {}
+                        console.warn('Global onAddToQueue called but no app handler is registered.');
+                        return null;
+                    };
                 }
             }
         } catch (e) {
             // silent
         }
-    }, []);
+    }, [navigate]);
 
     // Mobile edge-swipe: detect a right swipe starting from the left edge
     // and navigate back one step. This complements native swipe-back and
@@ -236,7 +237,7 @@ function App() {
             window.removeEventListener('touchmove', onTouchMove);
             window.removeEventListener('touchend', onTouchEnd);
         };
-    }, []);
+    }, [navigate]);
     
     useEffect(() => { 
         if (user) { 
@@ -291,7 +292,7 @@ function App() {
                 await nativeMediaService.start(currentSong, isPlaying);
             } catch(e) { console.warn('nativeMediaService.start error', e); }
         })();
-    } }, [currentSong]);
+    } }, [currentSong, isPlaying]);
     useEffect(() => { const a = audioRef.current; if (a) { if (isPlaying) { a.play().catch(console.error); } else { a.pause(); } 
         // Update native notification play state
         (async () => {
@@ -453,15 +454,11 @@ function App() {
     const handleSearchChange = useCallback((e) => {
         const val = e.target.value;
         setSearchTerm(val);
-        if (fuzzy && val) {
-            setSuggestions(getFuzzySuggestions(fuzzy, val, 5));
-        } else {
-            setSuggestions([]);
-        }
-    }, [fuzzy]);
+        // Suggestions UI is not currently rendered; we keep indexing but
+        // do not store suggestion state to avoid unused-vars warnings.
+    }, []);
     const handleClearSearch = useCallback(() => {
         setSearchTerm('');
-        setSuggestions([]);
     }, []);
 
     // Handle browser/mobile gesture back navigation
@@ -527,11 +524,7 @@ function App() {
         setIsQueueOpen(false);
     };
 
-    const handleToggleQueue = () => {
-        setIsQueueOpen(v => !v);
-        // ensure state reflects queueService
-        setQueue(queueService.getQueue());
-    };
+    // Removed unused handleToggleQueue; use `setIsQueueOpen` and `setQueue` directly where needed.
 
     const handleOpenAddToPlaylist = (songId) => {
         const token = (user && user.token) ? user.token : null;

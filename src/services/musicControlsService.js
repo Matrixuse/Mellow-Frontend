@@ -2,8 +2,6 @@
 // Usage: install plugin: npm i cordova-plugin-music-controls2 && npx cap sync android
 // Then import this service and call start(track), updateIsPlaying(bool), updateMetadata(track), stop()
 
-const isAndroid = /Android/i.test(navigator.userAgent || '');
-
 class MusicControlsService {
   constructor() {
     this.available = !!window.MusicControls || !!(window.cordova && window.cordova.plugins && window.cordova.plugins.MusicControls);

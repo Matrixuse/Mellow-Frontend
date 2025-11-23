@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Play, MoreVertical, Trash2, Music, GripVertical } from 'lucide-react';
-import { getPlaylistById, removeSongFromPlaylist, reorderPlaylistSongs, deletePlaylist } from '../api/playlistService';
+import { ArrowLeft, Play, MoreVertical, Trash2, Music } from 'lucide-react';
+import { getPlaylistById, removeSongFromPlaylist, reorderPlaylistSongs } from '../api/playlistService';
 import { Link } from 'react-router-dom';
 
 const PlaylistView = ({ playlistId, user, onPlaySong, onPlayPlaylist, onAddToQueue, currentSongId, isPlaying, onClose }) => {
@@ -84,11 +84,7 @@ const PlaylistView = ({ playlistId, user, onPlaySong, onPlayPlaylist, onAddToQue
         }
     };
 
-    const handlePlayPlaylist = () => {
-        if (onPlayPlaylist && playlist) {
-            onPlayPlaylist(playlist);
-        }
-    };
+    // playlist 'play all' handler removed; parent handles playing playlists.
 
     const handleDragStart = (e, index, songId) => {
         setIsDragging(true);
@@ -262,9 +258,7 @@ const PlaylistView = ({ playlistId, user, onPlaySong, onPlayPlaylist, onAddToQue
                                         <button onClick={(e) => { e.stopPropagation(); setExpandedMenu(expandedMenu === song.id ? null : song.id); }} className="p-2 rounded-full hover:bg-gray-700"><MoreVertical size={18} /></button>
                                         {expandedMenu === song.id && (
                                             <div className="absolute right-0 top-10 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10 min-w-[160px]">
-                                                <button onClick={(e) => { e.stopPropagation(); if (onAddToQueue) { onAddToQueue(song); setToast({ type: 'success', message: 'Added to queue' }); } else { setToast({ type: 'error', message: 'Queue action not available' }); } setExpandedMenu(null); }} className="w-full text-left px-3 py-2 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2"><Play size={14}/>Add to queue</button>
-                                                    <button onClick={(e) => { e.stopPropagation(); if (onAddToQueue) { onAddToQueue(song, playlist); setToast({ type: 'success', message: 'Added to queue' }); } else { setToast({ type: 'error', message: 'Queue action not available' }); } setExpandedMenu(null); }} className="w-full text-left px-3 py-2 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2"><Play size={14}/>Add to queue</button>
-                                                    <button onClick={(e) => { e.stopPropagation(); if (onAddToQueue) { onAddToQueue(song, playlist); setToast({ type: 'success', message: 'Added to queue' }); } else { setToast({ type: 'error', message: 'Queue action not available' }); } setExpandedMenu(null); }} className="w-full text-left px-3 py-2 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2"><Play size={14}/>Add to queue</button>
+                                                <button onClick={(e) => { e.stopPropagation(); if (onAddToQueue) { onAddToQueue(song, playlist); setToast({ type: 'success', message: 'Added to queue' }); } else { setToast({ type: 'error', message: 'Queue action not available' }); } setExpandedMenu(null); }} className="w-full text-left px-3 py-2 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2"><Play size={14}/>Add to queue</button>
                                                 <button onClick={(e) => { e.stopPropagation(); handleRemoveSong(song.id); }} className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-gray-700 flex items-center gap-2"><Trash2 size={14}/>Remove</button>
                                             </div>
                                         )}
