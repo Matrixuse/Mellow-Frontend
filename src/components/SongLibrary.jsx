@@ -20,8 +20,8 @@ const topArtists = [
     { name: 'Udit Narayan', imageUrl: '/artists/uditnarayan.png' },
     { name: 'Vishal-Shekhar', imageUrl: '/artists/vishalshekhar.png' },
     { name: 'Shubh', imageUrl: '/artists/shubh.png' },
-    { name: 'Guru Radhawa', imageUrl: '/artists/gururandhawa.png' },
-    { name: 'Baadshah', imageUrl: '/artists/baadshah.png' },
+    { name: 'Guru Randhawa', imageUrl: '/artists/gururandhawa.png' },
+    { name: 'Badshah', imageUrl: '/artists/baadshah.png' },
 ];
 
 // Mood categories with keywords for filtering
@@ -187,10 +187,10 @@ const SongLibrary = ({ songs, onSelectSong, currentSongId, isPlaying, onAddToQue
         <div>
             {/* Mobile order: Recently Uploaded then Top Artists */}
             <div className="md:hidden">
-                <h3 className="text-xl font-bold mb-4">Recently Uploaded</h3>
+                <h3 className="text-xl font-bold mb-4">Most Popular</h3>
                 {songs.length === 0 ? (
                     <div className="text-center text-gray-400 mt-10">
-                        <p>Your library is empty. Upload songs through the admin panel.</p>
+                        <p>Song not found.</p>
                     </div>
                 ) : (
                     <>
@@ -270,10 +270,10 @@ const SongLibrary = ({ songs, onSelectSong, currentSongId, isPlaying, onAddToQue
                 <TopArtists />
                 
                 <div className="mt-6">
-                    <h3 className="text-xl font-bold mb-4">Recently Uploaded</h3>
+                    <h3 className="text-xl font-bold mb-4">Most Popular</h3>
                     {songs.length === 0 ? (
                         <div className="text-center text-gray-400 mt-10">
-                            <p>Your library is empty. Upload songs through the admin panel.</p>
+                            <p>Song not found.</p>
                         </div>
                     ) : (
                         <div className="grid grid-rows-2 grid-flow-col auto-cols-[9rem] sm:auto-cols-[10rem] gap-3 overflow-x-auto custom-scrollbar-h pb-4">

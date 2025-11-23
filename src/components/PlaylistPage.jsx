@@ -17,6 +17,8 @@ const PlaylistPage = () => {
         // Find index of songId in playlist
         const idx = playlist.songs.findIndex(s => String(s.id) === String(songId));
         if (idx >= 0) {
+            // Make sure queue pointer points to the selected song so "next" works correctly
+            queueService.currentIndex = idx;
             if (stableOutlet.onSelectSong) stableOutlet.onSelectSong(playlist.songs[idx].id);
         }
     }, [stableOutlet]);
@@ -26,15 +28,27 @@ const PlaylistPage = () => {
         if (!playlist || !playlist.songs || !Array.isArray(playlist.songs) || playlist.songs.length === 0) return;
         queueService.clearQueue();
         queueService.addToQueue(playlist.songs, 'end');
+        // Ensure pointer starts at the first song
+        queueService.currentIndex = 0;
         if (stableOutlet.onSelectSong) stableOutlet.onSelectSong(playlist.songs[0].id);
     }, [stableOutlet]);
 
     // Handler for adding a song to the queue from a playlist context
     const handleAddToQueueFromPlaylist = useCallback((song, playlist) => {
-        if (playlist && playlist.songs && Array.isArray(playlist.songs)) {
-            queueService.addToQueue([song], 'end');
+        // Prefer forwarding to the app-level handler (via outlet) so UI state is synced and
+        // playlist-aware positioning (next) is applied. If outlet handler isn't available,
+        // fall back to queueService and insert 'next'.
+        try {
+            if (stableOutlet && typeof stableOutlet.onAddToQueue === 'function') {
+                stableOutlet.onAddToQueue(song, playlist);
+                return;
+            }
+        } catch (e) {
+            // ignore and fallback
         }
-    }, []);
+        // Fallback: insert after current song
+        queueService.addToQueue([song], 'next');
+    }, [stableOutlet]);
 
     // Prefer outlet user (provided by App via Outlet context). If not available (some navigation flows),
     // fall back to reading from localStorage so the page still works after refresh/navigation.

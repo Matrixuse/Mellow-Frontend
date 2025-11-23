@@ -5,6 +5,7 @@ class QueueService {
         this.currentIndex = 0;
         this.isShuffleMode = false;
         this.originalQueue = []; // Store original order when shuffle is active
+        this._nextInsertOffset = 0; // number of items inserted after currentIndex (for 'next' position)
     }
 
     // Add songs to queue
@@ -16,10 +17,19 @@ class QueueService {
         if (position === 'end') {
             this.queue.push(...songs);
         } else if (position === 'next') {
-            this.queue.splice(this.currentIndex + 1, 0, ...songs);
+            // Insert after currentIndex, but preserve order for multiple sequential 'next' calls.
+            // Use _nextInsertOffset so subsequent addToQueue(...,'next') append after previously
+            // inserted 'next' items rather than reversing order.
+            const insertAt = Math.min(this.currentIndex + 1 + this._nextInsertOffset, this.queue.length);
+            this.queue.splice(insertAt, 0, ...songs);
+            this._nextInsertOffset += songs.length;
         } else if (position === 'now') {
-            this.queue.splice(this.currentIndex + 1, 0, ...songs);
-            this.currentIndex = this.currentIndex + songs.length;
+            // Insert immediately after current and advance pointer to the last inserted song
+            const insertAtNow = Math.min(this.currentIndex + 1 + this._nextInsertOffset, this.queue.length);
+            this.queue.splice(insertAtNow, 0, ...songs);
+            this.currentIndex = insertAtNow + songs.length - 1;
+            // If we inserted 'now' items, reset offset to reflect that new currentIndex
+            this._nextInsertOffset = 0;
         }
 
         // Update original queue if not in shuffle mode
@@ -43,6 +53,11 @@ class QueueService {
                     this.currentIndex = this.queue.length - 1;
                 }
             }
+            // Removing items that are after the current index should reduce the next-insert offset
+            if (index > this.currentIndex && this._nextInsertOffset > 0) {
+                // reduce offset but not below zero
+                this._nextInsertOffset = Math.max(0, this._nextInsertOffset - 1);
+            }
         }
     }
 
@@ -51,6 +66,7 @@ class QueueService {
         this.queue = [];
         this.currentIndex = 0;
         this.originalQueue = [];
+        this._nextInsertOffset = 0;
     }
 
     // Get current song
@@ -84,12 +100,15 @@ class QueueService {
         } else {
             this.currentIndex = (this.currentIndex + 1) % this.queue.length;
         }
+        // After moving currentIndex, reset offset so future 'next' inserts append after new current
+        this._nextInsertOffset = 0;
         return this.getCurrentSong();
     }
 
     // Move to previous song
     previous() {
         this.currentIndex = this.currentIndex > 0 ? this.currentIndex - 1 : this.queue.length - 1;
+        this._nextInsertOffset = 0;
         return this.getCurrentSong();
     }
 
@@ -98,6 +117,7 @@ class QueueService {
         const index = this.queue.findIndex(song => song.id === songId);
         if (index !== -1) {
             this.currentIndex = index;
+            this._nextInsertOffset = 0;
             return this.getCurrentSong();
         }
         return null;

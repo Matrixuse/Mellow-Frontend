@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 // Humne yahan 'Outlet' aur 'useOutletContext' ko import kiya hai
-import { Routes, Route, Link, Outlet, useOutletContext } from 'react-router-dom';
+import { Routes, Route, Link, Outlet, useOutletContext, useNavigate } from 'react-router-dom';
 import AuthForm from './components/AuthForm';
 import queueService from './services/queueService';
 import nativeMediaService from './services/nativeMediaService';
@@ -157,6 +157,9 @@ function App() {
     const audioRef = useRef(null);
     const currentSong = songs[currentSongIndex];
 
+    // programmatic navigation helper for gesture handling
+    const navigate = useNavigate();
+
     // New state for fuzzy search
     const [suggestions, setSuggestions] = useState([]);
     const [fuzzy, setFuzzy] = useState(null);
@@ -182,6 +185,57 @@ function App() {
         } catch (e) {
             // silent
         }
+    }, []);
+
+    // Mobile edge-swipe: detect a right swipe starting from the left edge
+    // and navigate back one step. This complements native swipe-back and
+    // ensures the app navigates back inside PWAs/webviews where gestures
+    // might not be forwarded consistently.
+    useEffect(() => {
+        const isMobile = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(max-width: 767px)').matches;
+        if (!isMobile) return;
+
+        let startX = 0;
+        let startY = 0;
+        let tracking = false;
+
+        const onTouchStart = (e) => {
+            if (!e.touches || e.touches.length !== 1) return;
+            const t = e.touches[0];
+            // Only start if gesture begins near left edge (within 30px)
+            if (t.clientX > 30) return;
+            startX = t.clientX;
+            startY = t.clientY;
+            tracking = true;
+        };
+
+        const onTouchMove = (e) => {
+            if (!tracking || !e.touches || e.touches.length !== 1) return;
+            const t = e.touches[0];
+            const dx = t.clientX - startX;
+            const dy = Math.abs(t.clientY - startY);
+            // horizontal swipe to right with limited vertical movement
+            if (dx > 100 && dy < 60) {
+                tracking = false;
+                try {
+                    navigate(-1);
+                } catch (e) {
+                    window.history.back();
+                }
+            }
+        };
+
+        const onTouchEnd = () => { tracking = false; };
+
+        window.addEventListener('touchstart', onTouchStart, { passive: true });
+        window.addEventListener('touchmove', onTouchMove, { passive: true });
+        window.addEventListener('touchend', onTouchEnd);
+
+        return () => {
+            window.removeEventListener('touchstart', onTouchStart);
+            window.removeEventListener('touchmove', onTouchMove);
+            window.removeEventListener('touchend', onTouchEnd);
+        };
     }, []);
     
     useEffect(() => { 
@@ -348,16 +402,42 @@ function App() {
             } catch (e) {}
         }
     }, [songs, currentSongIndex]);
-    // Queue handler used by SongLibrary to add a song to the queue
-    const handleAddToQueue = useCallback((songOrSongs, position = 'end') => {
+    // Queue handler used by SongLibrary and playlist views to add a song to the queue
+    // Supports two signatures:
+    // - handleAddToQueue(songOrSongs, positionString)
+    // - handleAddToQueue(songOrSongs, playlistObject)
+    // If a playlist object is passed, we treat the addition as 'next' (play after current song).
+    const handleAddToQueue = useCallback((songOrSongs, secondArg = 'end') => {
         try {
+            // Determine position: if secondArg is a string, assume it's a position marker ('end','next','now')
+            let position = 'end';
+            if (typeof secondArg === 'string') {
+                position = secondArg;
+            } else if (secondArg && typeof secondArg === 'object') {
+                // If a playlist object (has songs array or id), treat as playlist context -> insert 'next'
+                position = 'next';
+            }
+
+            // If the internal queue is empty but there is a currently playing global song,
+            // seed the queue with the current song so queue indices and "next" semantics work.
+            if (queueService.isEmpty()) {
+                const playing = currentSong;
+                if (playing) {
+                    // Ensure the current playing song appears as the first item in the queue
+                    queueService.addToQueue(playing, 'end');
+                    // Make sure pointer references the playing song
+                    queueService.currentIndex = 0;
+                }
+            }
+
+            // Finally add the requested songs
             queueService.addToQueue(songOrSongs, position);
             // sync local state for UI
             setQueue(queueService.getQueue());
         } catch (err) {
             console.error('Failed to add to queue', err);
         }
-    }, []);
+    }, [currentSong]);
 
     // Keep a ref to the latest handler so legacy global callers can safely
     // forward to the current implementation without causing TDZ issues.

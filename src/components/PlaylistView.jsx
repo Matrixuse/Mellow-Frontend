@@ -79,7 +79,8 @@ const PlaylistView = ({ playlistId, user, onPlaySong, onPlayPlaylist, onAddToQue
 
     const handlePlaySong = (songId) => {
         if (onPlaySong) {
-            onPlaySong(songId);
+            // pass playlist context so parent can set the queue to this playlist
+            onPlaySong(songId, playlist);
         }
     };
 
@@ -238,7 +239,7 @@ const PlaylistView = ({ playlistId, user, onPlaySong, onPlayPlaylist, onAddToQue
                                             <button onClick={(e) => { e.stopPropagation(); setExpandedMenu(expandedMenu === song.id ? null : song.id); }} className="p-1 rounded-full hover:bg-gray-700"><MoreVertical size={14} /></button>
                                             {expandedMenu === song.id && (
                                                         <div className="absolute right-0 top-10 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10 min-w-[140px]">
-                                                            <button onClick={(e) => { e.stopPropagation(); if (onAddToQueue) { onAddToQueue(song); setToast({ type: 'success', message: 'Added to queue' }); } else { setToast({ type: 'error', message: 'Queue action not available' }); } setExpandedMenu(null); }} className="w-full text-left px-2 py-2 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2"><Play size={14}/>Add to queue</button>
+                                                            <button onClick={(e) => { e.stopPropagation(); if (onAddToQueue) { onAddToQueue(song, playlist); setToast({ type: 'success', message: 'Added to queue' }); } else { setToast({ type: 'error', message: 'Queue action not available' }); } setExpandedMenu(null); }} className="w-full text-left px-2 py-2 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2"><Play size={14}/>Add to queue</button>
                                                             <button onClick={(e) => { e.stopPropagation(); handleRemoveSong(song.id); }} className="w-full text-left px-2 py-2 text-sm text-red-400 hover:bg-gray-700 flex items-center gap-2"><Trash2 size={14}/>Remove</button>
                                                         </div>
                                             )}
@@ -262,6 +263,8 @@ const PlaylistView = ({ playlistId, user, onPlaySong, onPlayPlaylist, onAddToQue
                                         {expandedMenu === song.id && (
                                             <div className="absolute right-0 top-10 bg-gray-800 border border-gray-700 rounded-lg shadow-lg z-10 min-w-[160px]">
                                                 <button onClick={(e) => { e.stopPropagation(); if (onAddToQueue) { onAddToQueue(song); setToast({ type: 'success', message: 'Added to queue' }); } else { setToast({ type: 'error', message: 'Queue action not available' }); } setExpandedMenu(null); }} className="w-full text-left px-3 py-2 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2"><Play size={14}/>Add to queue</button>
+                                                    <button onClick={(e) => { e.stopPropagation(); if (onAddToQueue) { onAddToQueue(song, playlist); setToast({ type: 'success', message: 'Added to queue' }); } else { setToast({ type: 'error', message: 'Queue action not available' }); } setExpandedMenu(null); }} className="w-full text-left px-3 py-2 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2"><Play size={14}/>Add to queue</button>
+                                                    <button onClick={(e) => { e.stopPropagation(); if (onAddToQueue) { onAddToQueue(song, playlist); setToast({ type: 'success', message: 'Added to queue' }); } else { setToast({ type: 'error', message: 'Queue action not available' }); } setExpandedMenu(null); }} className="w-full text-left px-3 py-2 text-sm text-gray-200 hover:bg-gray-700 flex items-center gap-2"><Play size={14}/>Add to queue</button>
                                                 <button onClick={(e) => { e.stopPropagation(); handleRemoveSong(song.id); }} className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-gray-700 flex items-center gap-2"><Trash2 size={14}/>Remove</button>
                                             </div>
                                         )}
